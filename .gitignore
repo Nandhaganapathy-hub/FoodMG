@@ -5,6 +5,7 @@ dist/
 
 # --- Django ---
 __pycache__/
+migrations/
 *.pyc
 db.sqlite3
 
