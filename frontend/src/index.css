@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./auth.css";
 
 :root {
   --color-surface-val: #f7fbf0;
