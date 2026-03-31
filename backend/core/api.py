@@ -9,6 +9,10 @@ from datetime import date, timedelta
 
 from .models import CustomUser, Canteen, NGO, Record, Alter, RE
 from .schemas import *
+from prediction.TFT_transformer.infer import predict as tft_predict
+from prediction.meta_learning.infer import predict as Surplus_predict
+
+from sklearn.preprocessing import LabelEncoder
 
 api = NinjaExtraAPI(
     title="Food Waste Prediction & Redistribution API",
@@ -143,21 +147,41 @@ def list_records(request, date_from: Optional[date] = None, date_to: Optional[da
 
 # ====================== DUMMY PREDICTION APIs (random fake data) ======================
 @api.get("/predict/footfall", auth=JWTAuth(), response=PredictionOut)
-def predict_footfall(request, target_date: Optional[date] = None):
+def predict_footfall(request, target_meal : Optional[str] = None ):
     """Dummy time-series prediction - returns random but realistic fake data"""
-    if not target_date:
-        target_date = date.today() + timedelta(days=1)
+
     
     # Simulate realistic numbers based on historical average logic
-    base_footfall = random.randint(800, 2500)
-    predicted_footfall = base_footfall + random.randint(-200, 300)
-    predicted_surplus = max(0, int(predicted_footfall * 0.12))  # ~12% surplus assumption
+    datas = Record.objects.all()
+    day_encoder = LabelEncoder()
+    meal_encoder = LabelEncoder()
+    
+    days = [data.day for data in datas]
+    meals = [ data.meal_menu_info for data in datas]
+    no_members = [data.no_members for data in datas]
+    
+    day_encoder.fit(days)
+    meal_encoder.fit(meals)
+    
+    meals = 1 # meal_encoder.transform(meals)
+    
+    days = 2 # day_encoder.transform(days)
+    
+    sample = (no_members,days,meals,234)
+    
+    print(f'[LOG] : {sample}')
+    footfall_predict = tft_predict(sample, "prediction/TFT_transformer/tft_model.pth")
+    print(f'[LOG] : predict -> {footfall_predict}')
 
+    leftover_food = Surplus_predict(footfall_predict, 342, days, meals, "prediction/meta_learning/meta_model_v2.pth")[0]
+    print(leftover_food)
+
+    
     return {
-        "predicted_footfall": predicted_footfall,
-        "predicted_surplus": predicted_surplus,
+        "predicted_footfall": footfall_predict,
+        "predicted_surplus": leftover_food,
         "confidence": round(random.uniform(0.78, 0.95), 2),
-        "date": target_date
+        "date": "2026-04-03"
     }
 
 @api.get("/predict/surplus", auth=JWTAuth(), response=PredictionOut)

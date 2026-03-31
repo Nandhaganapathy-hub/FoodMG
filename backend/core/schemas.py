@@ -35,8 +35,8 @@ class RecordOut(Schema):
     canteen_name: str
 
 class PredictionOut(Schema):
-    predicted_footfall: int
-    predicted_surplus: int
+    predicted_footfall: float
+    predicted_surplus: float
     confidence: float
     date: date
 
